@@ -44,6 +44,8 @@ DEFAULTS = {
     "or_opt_max_segments": 120,   # skip Or-opt on layers with more segments
     "or_opt_max_moves": 150,      # cap accepted Or-opt moves per layer
     "couple_layers": 1,           # inter-layer coupling sweeps (0 = off)
+    "print_feed": 1800.0,
+    "extrude_feed": 1800.0,
 }
 
 
@@ -231,6 +233,62 @@ def analyze_path(path, progress_cb=None):
 def analyze_lines(lines):
     """Score a list/iterable of g-code lines with the same rules as analyze_path."""
     return _analyze_lines_iter(lines)
+
+
+def estimate_time(lines, opts=None):
+    """Estimate print time in seconds by summing move distances / feedrates.
+
+    Feedrates are assumed to be mm/min (Marlin-style). Uses the F value on each
+    move if present; falls back to travel_feed for non-extruding moves and to a
+    sensible print feed for extruding moves. Returns total time in seconds.
+    """
+    o = dict(DEFAULTS)
+    if opts:
+        o.update(opts)
+    x = y = z = e = 0.0
+    abs_e = False
+    t_sec = 0.0
+    for ln in lines:
+        b = ln.split(';', 1)[0].strip()
+        if not b:
+            continue
+        toks = b.split()
+        cmd = toks[0].upper()
+        if cmd in ("M82", "M83"):
+            abs_e = (cmd == "M82")
+            continue
+        if cmd not in MOVE_CMDS:
+            continue
+        mv = {"x": None, "y": None, "z": None, "e": None, "f": None}
+        for t in toks[1:]:
+            c = t[0].upper()
+            if c in ("X", "Y", "Z", "E", "F"):
+                try:
+                    mv[c.lower()] = float(t[1:])
+                except ValueError:
+                    pass
+        nx = mv["x"] if mv["x"] is not None else x
+        ny = mv["y"] if mv["y"] is not None else y
+        nz = mv["z"] if mv["z"] is not None else z
+        if mv["e"] is not None:
+            ne = mv["e"] if abs_e else e + mv["e"]
+        else:
+            ne = e
+        dx, dy, dz = nx - x, ny - y, nz - z
+        d = math.hypot(dx, dy, dz)
+        if d > 1e-9:
+            de_mv = ne - e
+            is_ex = de_mv > 1e-9
+            f = mv["f"]
+            if f is None or f <= 0:
+                if is_ex:
+                    f = o.get("print_feed", o.get("extrude_feed", 1800.0))
+                else:
+                    f = o.get("travel_feed", 8000.0)
+            if f > 0:
+                t_sec += (d / f) * 60.0
+        x, y, z, e = nx, ny, nz, ne
+    return t_sec
 
 
 # --------------------------------------------------------------------------- #

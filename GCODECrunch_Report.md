@@ -41,10 +41,12 @@ that are fully reorderable, so further gains must come from better solutions to 
 same per-layer problem (or below whole-segment granularity), not from reordering
 more layers.
 
-A subtle bug was found and fixed during this work: Or-opt's insertion-cost model
-used the segment's source orientation rather than its current orientation,
-producing a handful of moves that *increased* travel (the bug is documented in
-§6, Iteration 3).
+Feedrate-based time estimates (Marlin mm/min feedrates; uses per-move F or
+sensible defaults for travel/print) for the baseline and each strategy are
+summarised in §6.4 below. A subtle bug was found and fixed during this work:
+Or-opt's insertion-cost model used the segment's source orientation rather than
+its current orientation, producing a handful of moves that *increased* travel
+(the bug is documented in §6, Iteration 3).
 
 ---
 
@@ -345,7 +347,45 @@ well-chosen final edge. The two large `T` files dominate the gain; the dense `LR
 and the small `Elevon`/`Wing` files were already well coupled, and `auto` selects
 the coupled result everywhere it helps.
 
-### Iteration 6 — (next)
+### Iteration 6 — Estimated print time
+
+The time estimates below are feedrate-based (Marlin mm/min), summing
+`distance/move_feed` with per-move `F` values or sensible defaults for
+travel/extrude moves. They exclude acceleration, non-linear effects, retraction
+dwell logic and slicer embellishments; the reduction percentages track the travel
+savings closely and are a useful ballpark for real print time.
+
+**Estimated print time (seconds):**
+
+| File | Baseline | verbatim | greedy | greedy+2opt | greedy+2opt+oropt@0 | greedy+2opt+oropt | auto |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Elevon Horn x 2.gcode | 452.2 | 450.9 | 449.8 | 448.8 | 444.2 | 444.2 | 444.2 |
+| Gruel Wing Plates.gcode | 3 918.6 | 3 914.1 | 3 893.1 | 3 890.4 | 3 889.6 | 3 889.6 | 3 889.6 |
+| LOuterGruel VI.gcode | 11 771.7 | 11 954.0 | 11 322.6 | 11 320.3 | 11 320.9 | 11 320.1 | 11 320.1 |
+| LR Gruel VI.gcode | 25 199.6 | 25 742.1 | 23 975.4 | 23 744.3 | 23 722.2 | 23 722.2 | 23 722.2 |
+| LT Gruel VI.gcode | 44 331.5 | 45 459.1 | 42 721.3 | 42 297.4 | 42 427.7 | 42 278.1 | 42 278.1 |
+| ROuterGruel VI.gcode | 11 767.5 | 11 953.4 | 11 324.7 | 11 319.9 | 11 320.5 | 11 319.8 | 11 319.8 |
+| RR Gruel VI.gcode | 28 345.6 | 29 124.0 | 26 370.8 | 26 190.5 | 26 139.3 | 26 135.6 | 26 135.6 |
+| RT Gruel VI.gcode | 45 211.9 | 46 727.7 | 42 656.2 | 42 242.4 | 42 309.6 | 42 226.4 | 42 226.4 |
+
+**Estimated time saved vs baseline (%):**
+
+| File | verbatim | greedy | greedy+2opt | greedy+2opt+oropt@0 | greedy+2opt+oropt | auto |
+|---|---:|---:|---:|---:|---:|---:|
+| Elevon Horn x 2.gcode | 0.3 | 0.5 | 0.7 | 1.8 | 1.8 | 1.8 |
+| Gruel Wing Plates.gcode | 0.1 | 0.6 | 0.7 | 0.7 | 0.7 | 0.7 |
+| LOuterGruel VI.gcode | −1.5 | 3.8 | 3.8 | 3.8 | 3.8 | 3.8 |
+| LR Gruel VI.gcode | −2.2 | 4.9 | 5.8 | 5.9 | 5.9 | 5.9 |
+| LT Gruel VI.gcode | −2.5 | 3.6 | 4.6 | 4.3 | 4.6 | 4.6 |
+| ROuterGruel VI.gcode | −1.6 | 3.8 | 3.8 | 3.8 | 3.8 | 3.8 |
+| RR Gruel VI.gcode | −2.7 | 7.0 | 7.6 | 7.8 | 7.8 | 7.8 |
+| RT Gruel VI.gcode | −3.4 | 5.7 | 6.6 | 6.4 | 6.6 | 6.6 |
+
+Full-set baseline estimated time: **170 998.6 s** (~47.5 h). With
+`greedy+2opt+oropt` (coupled): **164 136.0 s** (~45.6 h), an estimated
+**−4.0 %** reduction overall, tracking the travel savings.
+
+### Iteration 7 — (next)
 
 Planned: segment splitting and/or a cheapest-insertion seed (§9).
 

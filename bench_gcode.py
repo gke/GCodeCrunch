@@ -56,11 +56,14 @@ def pair_key(name):
 def run_file(path, orders):
     lines = load_lines(path)
     base = gc_engine.analyze_path(str(path))
+    base_lines = load_lines(path)
+    base_time = gc_engine.estimate_time(base_lines)
     row = {
         "file": path.name,
         "bytes": path.stat().st_size,
         "lines": len(lines),
         "base": base,
+        "base_time": base_time,
         "runs": {},
     }
     for order in orders:
@@ -73,6 +76,7 @@ def run_file(path, orders):
             text, info = gc_engine.nn_reorder_lines(lines, opts)
             dt = time.perf_counter() - t0
             sc = score_text(text)
+            est = gc_engine.estimate_time(text.splitlines(keepends=True))
             row["runs"][order] = {
                 "travel": sc["travel_dist"],
                 "total": sc["total_dist"],
@@ -82,11 +86,13 @@ def run_file(path, orders):
                 "layers": info.get("layers_reordered"),
                 "segments": info.get("segments"),
                 "seconds": dt,
+                "est_time": est,
                 "error": None,
             }
         except Exception as exc:  # keep going, record the failure
             row["runs"][order] = {"error": "%s: %s" % (type(exc).__name__, exc),
-                                  "seconds": time.perf_counter() - t0}
+                                  "seconds": time.perf_counter() - t0,
+                                  "est_time": None}
     return row
 
 
@@ -127,26 +133,27 @@ def main():
         w = csv.writer(f)
         w.writerow(["file", "bytes", "lines", "strategy", "travel_mm",
                     "extrude_mm", "total_mm", "moves", "chosen", "layers",
-                    "segments", "seconds", "error"])
+                    "segments", "seconds", "est_time_s", "error"])
         for r in rows:
             if r["base"]:
                 w.writerow([r["file"], r["bytes"], r["lines"], "BASELINE",
                             "%.4f" % r["base"]["travel_dist"],
                             "%.4f" % r["base"]["extrude_dist"],
                             "%.4f" % r["base"]["total_dist"],
-                            r["base"]["moves"], "", r["base"]["layers"], "", "", ""])
+                            r["base"]["moves"], "", r["base"]["layers"], "", "", "%.1f" % r.get("base_time", 0.0), ""])
             for order in args.orders:
                 rr = r["runs"][order]
                 if rr.get("error"):
                     w.writerow([r["file"], r["bytes"], r["lines"], order,
                                 "", "", "", "", "", "", "", "%.3f" % rr["seconds"],
-                                rr["error"]])
+                                "", rr["error"]])
                 else:
                     w.writerow([r["file"], r["bytes"], r["lines"], order,
                                 "%.4f" % rr["travel"], "%.4f" % rr["extrude"],
                                 "%.4f" % rr["total"],
                                 rr["moves"], rr["chosen"], rr["layers"],
-                                rr["segments"], "%.3f" % rr["seconds"], ""])
+                                rr["segments"], "%.3f" % rr["seconds"],
+                                "%.1f" % (rr.get("est_time") or 0.0), ""])
     print("wrote %s" % csv_path, file=sys.stderr)
 
     # ---- Markdown ----------------------------------------------------------
@@ -218,6 +225,31 @@ def main():
             else:
                 d = lv - rv
                 cells.append("%+.1f" % d)
+        print("| " + " | ".join(cells) + " |")
+
+    print("\n### Estimated print time (seconds)\n")
+    print("| File | Baseline | " + " | ".join(args.orders) + " |")
+    print("|" + "|".join(["---"] * (len(args.orders) + 2)) + "|")
+    for r in rows:
+        bt = r.get("base_time") or 0.0
+        cells = [r["file"], fmt(bt, nd=1)]
+        for order in args.orders:
+            rr = r["runs"][order]
+            cells.append("ERR" if rr.get("error") else fmt(rr.get("est_time") or 0.0, nd=1))
+        print("| " + " | ".join(cells) + " |")
+
+    print("\n### Estimated time saved vs baseline (%)\n")
+    print("| File | " + " | ".join(args.orders) + " |")
+    print("|" + "|".join(["---"] * (len(args.orders) + 1)) + "|")
+    for r in rows:
+        bt = r.get("base_time") or 0.0
+        cells = [r["file"]]
+        for order in args.orders:
+            rr = r["runs"][order]
+            if rr.get("error") or bt <= 0:
+                cells.append("ERR" if rr.get("error") else "-")
+                continue
+            cells.append(fmt((bt - (rr.get("est_time") or 0.0)) / bt * 100.0))
         print("| " + " | ".join(cells) + " |")
 
     print("\n### Unpaired files\n")

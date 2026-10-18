@@ -230,6 +230,15 @@ def main():
     print("\n### Estimated print time (seconds)\n")
     print("| File | Baseline | " + " | ".join(args.orders) + " |")
     print("|" + "|".join(["---"] * (len(args.orders) + 2)) + "|")
+    totals_base = 0.0
+    totals = {o: 0.0 for o in args.orders}
+    for r in rows:
+        bt = r.get("base_time") or 0.0
+        totals_base += bt
+        for order in args.orders:
+            rr = r["runs"][order]
+            if not rr.get("error"):
+                totals[order] += rr.get("est_time") or 0.0
     for r in rows:
         bt = r.get("base_time") or 0.0
         cells = [r["file"], fmt(bt, nd=1)]
@@ -237,6 +246,10 @@ def main():
             rr = r["runs"][order]
             cells.append("ERR" if rr.get("error") else fmt(rr.get("est_time") or 0.0, nd=1))
         print("| " + " | ".join(cells) + " |")
+    cells_t = ["TOTAL", fmt(totals_base, nd=1)]
+    for order in args.orders:
+        cells_t.append(fmt(totals.get(order, 0.0), nd=1))
+    print("| " + " | ".join(cells_t) + " |")
 
     print("\n### Estimated time saved vs baseline (%)\n")
     print("| File | " + " | ".join(args.orders) + " |")
@@ -251,6 +264,15 @@ def main():
                 continue
             cells.append(fmt((bt - (rr.get("est_time") or 0.0)) / bt * 100.0))
         print("| " + " | ".join(cells) + " |")
+    cells_t = ["TOTAL"]
+    for order in args.orders:
+        tb = totals_base
+        ta = totals.get(order, 0.0)
+        if tb <= 0:
+            cells_t.append("-")
+        else:
+            cells_t.append(fmt((tb - ta) / tb * 100.0))
+    print("| " + " | ".join(cells_t) + " |")
 
     print("\n### Unpaired files\n")
     unpaired = [k for k, s in pairs.items() if "L" not in s or "R" not in s]

@@ -2,6 +2,9 @@
 # Build GCODECrunch for the current platform
 set -e
 
+# Run from the repo root (this script lives in installer_kits/)
+cd "$(dirname "$0")/.."
+
 echo "=== GCODECrunch Build Script ==="
 echo "Platform: $(uname -s) $(uname -m)"
 

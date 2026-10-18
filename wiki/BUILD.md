@@ -1,19 +1,21 @@
 # Building GCODECrunch Installers
 
+Build and packaging assets live in [`installer_kits/`](installer_kits/README.md).
+
 ## Quick Start
 
 ### Linux / macOS
 ```bash
-chmod +x build.sh
-./build.sh
+./installer_kits/build.sh
 ```
 
 ### Windows
 ```bat
-build.bat
+installer_kits\build.bat
 ```
 
-Output will be in `dist/`.
+Output will be in `dist/`. Both scripts change to the repo root themselves, so
+they can be run from anywhere.
 
 ## Automated Builds (GitHub Actions)
 
@@ -34,13 +36,14 @@ Artifacts are uploaded and a GitHub Release is created automatically.
 ## Manual Installer Creation
 
 ### Windows (Inno Setup)
-1. Build with `build.bat` or `pyinstaller GCODECrunch.spec`
+1. Build with `installer_kits/build.bat` or `pyinstaller GCODECrunch.spec`
 2. Install Inno Setup from https://jrsoftware.org/isinfo.php
-3. Open `installer.iss` and compile
+3. Compile the script: `iscc installer_kits/installer.iss`
+   (or open `installer_kits/installer.iss` in the Inno Setup IDE)
 4. Output: `installer_output/GCODECrunch-Setup-1.0.0.exe`
 
 ### macOS (DMG)
-1. Build with `./build.sh`
+1. Build with `./installer_kits/build.sh`
 2. Install create-dmg: `brew install create-dmg`
 3. Run: `create-dmg --volname "GCODECrunch" --app-drop-link 425 120 "GCODECrunch-1.0.0.dmg" "dist/GCODECrunch.app"`
 

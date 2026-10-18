@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# PyInstaller
+build/
+dist/
+*.pyz
+
+# Packaging output
+installer_output/
+
+# Editor / OS
+*.swp
+.DS_Store

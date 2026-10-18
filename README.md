@@ -1,0 +1,42 @@
+# GCODECrunch
+
+G-code travel optimiser: reorders extrusion segments within each print layer to
+cut non-extruding travel, without changing the deposited geometry.
+
+**Authorship:** OpenCode & Big Pickle and Prof. Greg Egan (2026) / need prompted
+by David Benner
+
+## Running
+
+```bash
+./GCODECrunch.sh        # clears __pycache__ and launches the GUI
+```
+
+`start_gcodecrunch.sh` is an identical alias.
+
+## Layout
+
+| Path | Contents |
+|---|---|
+| `main.py` | Root entry point — adds `src/` to the path and launches the GUI. |
+| `src/` | Application code: `main.py` (GUI), `gc_engine.py` (parser/optimiser library + CLI), `gc_gui.py` (earlier GUI wrapper). |
+| `scripts/` | Helpers and harnesses: `bench_gcode.py` (benchmark), diagnostics, geometry checks, legacy `GCODECrunch_v1/v2/NN` variants. |
+| `installer_kits/` | Packaging: `build.sh`, `build.bat`, Inno Setup `installer.iss`. |
+| `wiki/` | Documentation: `GCODECrunch_Report.md`/`.pdf` (development & performance report), `BUILD.md`. |
+| `bench_results.csv` | Latest benchmark output (per-file / per-strategy metrics). |
+| `GCODECrunch.spec` | PyInstaller spec (entry `main.py`, `pathex=['src']`). |
+| `.github/workflows/build.yml` | CI: builds on Linux/Windows/macOS, releases on `v*` tags. |
+
+## Benchmarking
+
+```bash
+python3 scripts/bench_gcode.py --dir "/path/to/gcode/folder"
+```
+
+Emits Markdown tables (travel distance, estimated print time, time saved,
+optimizer wall time) and writes `bench_results.csv`. See
+[`wiki/GCODECrunch_Report.md`](wiki/GCODECrunch_Report.md) for results.
+
+## Building installers
+
+See [`wiki/BUILD.md`](wiki/BUILD.md) and [`installer_kits/README.md`](installer_kits/README.md).

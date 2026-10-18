@@ -257,6 +257,34 @@ def estimate_time(lines, opts=None):
         if cmd in ("M82", "M83"):
             abs_e = (cmd == "M82")
             continue
+        if cmd.startswith("G4"):
+            for t in toks[1:]:
+                c = t[0].upper()
+                try:
+                    v = float(t[1:])
+                except ValueError:
+                    continue
+                if c == "P":
+                    t_sec += v / 1000.0
+                elif c == "S":
+                    t_sec += v
+            continue
+        if cmd == "G92":
+            for t in toks[1:]:
+                c = t[0].upper()
+                try:
+                    v = float(t[1:])
+                except ValueError:
+                    continue
+                if c == "X":
+                    x = v
+                elif c == "Y":
+                    y = v
+                elif c == "Z":
+                    z = v
+                elif c == "E":
+                    e = v
+            continue
         if cmd not in MOVE_CMDS:
             continue
         mv = {"x": None, "y": None, "z": None, "e": None, "f": None}
@@ -274,19 +302,28 @@ def estimate_time(lines, opts=None):
             ne = mv["e"] if abs_e else e + mv["e"]
         else:
             ne = e
+        if mv["f"] is not None and mv["f"] > 0:
+            f = mv["f"]
         dx, dy, dz = nx - x, ny - y, nz - z
         d = math.hypot(dx, dy, dz)
         if d > 1e-9:
             de_mv = ne - e
             is_ex = de_mv > 1e-9
-            f = mv["f"]
-            if f is None or f <= 0:
+            ff = f
+            if ff is None or ff <= 0:
                 if is_ex:
-                    f = o.get("print_feed", o.get("extrude_feed", 1800.0))
+                    ff = o.get("print_feed", o.get("extrude_feed", 1800.0))
                 else:
-                    f = o.get("travel_feed", 8000.0)
-            if f > 0:
-                t_sec += (d / f) * 60.0
+                    ff = o.get("travel_feed", 8000.0)
+            if ff > 0:
+                t_sec += (d / ff) * 60.0
+        elif mv["e"] is not None:
+            de_mv = ne - e
+            ff = f
+            if ff is None or ff <= 0:
+                ff = o.get("retract_feed", 1800.0)
+            if ff > 0 and abs(de_mv) > 1e-9:
+                t_sec += (abs(de_mv) / ff) * 60.0
         x, y, z, e = nx, ny, nz, ne
     return t_sec
 

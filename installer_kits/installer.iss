@@ -1,5 +1,7 @@
 ; Inno Setup script for GCODECrunch Windows installer
 ; Requires Inno Setup 6+ (https://jrsoftware.org/isinfo.php)
+; Compile from the repo root (paths below are relative to this file):
+;   iscc installer_kits/installer.iss
 
 [Setup]
 AppName=GCODECrunch
@@ -8,7 +10,7 @@ AppPublisher=Greg Egan
 AppURL=https://github.com/gke/GCodeCrunch
 DefaultDirName={autopf}\GCODECrunch
 DefaultGroupName=GCODECrunch
-OutputDir=installer_output
+OutputDir=..\installer_output
 OutputBaseFilename=GCODECrunch-Setup-1.0.0
 Compression=lzma2
 SolidCompression=yes
@@ -17,7 +19,7 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 
 [Files]
-Source: "dist\GCODECrunch.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\GCODECrunch.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\GCODECrunch"; Filename: "{app}\GCODECrunch.exe"

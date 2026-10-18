@@ -1,8 +1,5 @@
 #!/bin/bash
-cd "/home/gke/Documents/Flight/3D Projects" || exit 1
-
-# clear the Python bytecode cache so the latest sources are loaded
-find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
-find . -type f -name "*.pyc" -delete 2>/dev/null
-
-python3 GCODECrunch.py
+set -e
+cd "$(dirname "$0")"
+rm -rf __pycache__ src/__pycache__ scripts/__pycache__ 2>/dev/null || true
+python3 main.py "$@"

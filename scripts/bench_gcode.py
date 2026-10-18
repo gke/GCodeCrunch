@@ -20,10 +20,12 @@ import argparse
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
+ROOT = BASE.parent
+sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(BASE))
 import gc_engine  # noqa: E402
 
-DEFAULT_DIR = BASE / "Aircraft" / "Planks" / "Gruel" / "Gruel EMX07" / "GCODE"
+DEFAULT_DIR = ROOT / "Aircraft" / "Planks" / "Gruel" / "Gruel EMX07" / "GCODE"
 ALL_ORDERS = ["verbatim", "greedy", "greedy+2opt",
               "greedy+2opt+oropt@0", "greedy+2opt+oropt", "auto"]
 
@@ -128,7 +130,7 @@ def main():
         rows.append(run_file(p, args.orders))
 
     # ---- CSV ---------------------------------------------------------------
-    csv_path = BASE / "bench_results.csv"
+    csv_path = ROOT / "bench_results.csv"
     with open(csv_path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["file", "bytes", "lines", "strategy", "travel_mm",
@@ -273,6 +275,29 @@ def main():
         else:
             cells_t.append(fmt((tb - ta) / tb * 100.0))
     print("| " + " | ".join(cells_t) + " |")
+
+    print("\n### Optimizer wall time per strategy (seconds)\n")
+    print("| File | " + " | ".join(args.orders) + " |")
+    print("|" + "|".join(["---"] * (len(args.orders) + 1)) + "|")
+    opt_totals = {o: 0.0 for o in args.orders}
+    for r in rows:
+        cells = [r["file"]]
+        for order in args.orders:
+            rr = r["runs"][order]
+            secs = rr.get("seconds")
+            if rr.get("error") or secs is None:
+                cells.append("ERR" if rr.get("error") else "-")
+            else:
+                opt_totals[order] += secs
+                cells.append(fmt(secs, nd=2))
+        print("| " + " | ".join(cells) + " |")
+    cells_t = ["TOTAL"]
+    for order in args.orders:
+        cells_t.append(fmt(opt_totals.get(order, 0.0), nd=2))
+    print("| " + " | ".join(cells_t) + " |")
+    print("\nOptimizer wall time is the CPU time taken by the reorder/search passes")
+    print("to produce each optimised file (not print time). It scales with layer")
+    print("segment counts and the local-search guards; `auto` runs every candidate.")
 
     print("\n### Unpaired files\n")
     unpaired = [k for k, s in pairs.items() if "L" not in s or "R" not in s]

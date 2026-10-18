@@ -4,11 +4,11 @@
 block_cipher = None
 
 a = Analysis(
-    ['GCODECrunch.py'],
-    pathex=[],
+    ['main.py'],
+    pathex=['src'],
     binaries=[],
     datas=[],
-    hiddenimports=['gc_engine'],
+    hiddenimports=['gc_engine', 'gc_gui'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

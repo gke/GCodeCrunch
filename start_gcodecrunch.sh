@@ -1,3 +1,5 @@
 #!/bin/bash
-cd "/home/gke/Documents/Flight/3D Projects"
-python3 GCODECrunch_NN.py
+set -e
+cd "$(dirname "$0")"
+rm -rf __pycache__ src/__pycache__ scripts/__pycache__ 2>/dev/null || true
+python3 main.py "$@"

@@ -43,7 +43,7 @@ jobs:
 
       - name: Build Windows installer
         if: runner.os == 'Windows'
-        run: iscc installer.iss
+        run: iscc installer_kits/installer.iss
 
       - name: Package Windows
         if: runner.os == 'Windows'

@@ -1,0 +1,103 @@
+name: Build Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller GCODECrunch.spec
+
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          cd dist
+          tar czf GCODECrunch-linux-x86_64.tar.gz GCODECrunch
+          sha256sum GCODECrunch-linux-x86_64.tar.gz > GCODECrunch-linux-x86_64.tar.gz.sha256
+
+      - name: Install Inno Setup (Windows)
+        if: runner.os == 'Windows'
+        run: choco install innosetup -y
+
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        run: iscc installer.iss
+
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        run: |
+          cd dist
+          7z a GCODECrunch-windows-x86_64.zip GCODECrunch.exe
+          sha256sum GCODECrunch-windows-x86_64.zip > GCODECrunch-windows-x86_64.zip.sha256
+
+      - name: Create macOS DMG
+        if: runner.os == 'macOS'
+        run: |
+          brew install create-dmg 2>/dev/null || true
+          cd dist
+          if command -v create-dmg &>/dev/null; then
+            create-dmg \
+              --volname "GCODECrunch" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --app-drop-link 425 120 \
+              "GCODECrunch-1.0.0.dmg" \
+              "GCODECrunch.app" || true
+          fi
+          zip -r GCODECrunch-macos-universal.zip GCODECrunch.app
+          shasum -a 256 GCODECrunch-macos-universal.zip > GCODECrunch-macos-universal.zip.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCODECrunch-${{ runner.os }}
+          path: |
+            dist/GCODECrunch-linux-x86_64.tar.gz
+            dist/GCODECrunch-linux-x86_64.tar.gz.sha256
+            dist/GCODECrunch-windows-x86_64.zip
+            dist/GCODECrunch-windows-x86_64.zip.sha256
+            installer_output/GCODECrunch-Setup-1.0.0.exe
+            dist/GCODECrunch-macos-universal.zip
+            dist/GCODECrunch-macos-universal.zip.sha256
+            dist/GCODECrunch-1.0.0.dmg
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: false

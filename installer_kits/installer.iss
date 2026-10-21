@@ -7,7 +7,6 @@
 AppName=GCODECrunch
 AppVersion=1.1.0
 AppPublisher=Greg Egan
-AppURL=https://github.com/gke/GCodeCrunch
 DefaultDirName={autopf}\GCODECrunch
 DefaultGroupName=GCODECrunch
 OutputDir=..\installer_output

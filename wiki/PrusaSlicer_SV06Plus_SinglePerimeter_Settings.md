@@ -1,13 +1,13 @@
-# PrusaSlicer Settings - Sovol SV06 Plus (300×300), 0.2mm, 1 Perimeter Shell
+# PrusaSlicer Settings - Sovol SV06 Plus (300×300), 0.2 mm, 1 Perimeter Shell
 
 **Printer:** Sovol SV06 Plus (300×300) | **Nozzle:** 0.4mm | **Layer Height:** 0.2mm  
-**Filament:** eSun PLA+ / eSun LW-PLA | **Mode:** Single Perimeter  
+**Mode:** Single Perimeter
 
-*Note:* These are PrusaSlicer slicing recommendations for this specific machine. GCODECrunch is printer-agnostic and can process any Marlin-compatible G-code regardless of build volume.
+GCODECrunch is printer-agnostic and processes any Marlin-compatible G-code, regardless of filament type. The travel optimiser itself works with all filament types. The table below gives the slicer settings for a regular filament (PLA/PLA+ and similar) alongside the adjustments needed for foaming LW filament.
 
 ## Settings
 
-| Setting | PLA+ | LW-PLA |
+| Setting | Regular filament | LW-PLA |
 | :-- | :-- | :-- |
 | **Filament > Cooling > Slow down if layer print time is below** | 4-5s | 6-8s |
 | **Filament > Cooling > Minimum print speed** | 28-30 mm/s | 25-28 mm/s |
@@ -24,8 +24,8 @@
 | **Print Settings > Speed > Travel** | 150-180 mm/s | 140-150 mm/s |
 | **Print Settings > Layers and perimeters > Perimeters** | 1 | 1 |
 | **Print Settings > Layers and perimeters > Seam position** | Aligned/Rear | Aligned/Rear |
-| **Printer Settings > Extruder 1 > Retraction > Lift Z (Z-hop)** | 0 - 0.2mm | 0.2 - 0.3mm |
-| **Printer Settings > Extruder 1 > Retraction > Length** | 0.4-0.6mm | 0.6-0.8mm |
+| **Printer Settings > Extruder 1 > Retraction > Lift Z (Z-hop)** | 0 - 0.2 mm | 0.2 - 0.3 mm |
+| **Printer Settings > Extruder 1 > Retraction > Length** | 0.4-0.6 mm | 0.6-0.8 mm |
 | **Printer Settings > Extruder 1 > Retraction > Speed** | 30-40 mm/s | 25-30 mm/s |
 | **Printer Settings > General > Firmware > G-code flavor** | Marlin 2 | Marlin 2 |
 | **Printer Settings > General > Firmware > Use relative E distances** | Checked (M83) | Checked (M83) |

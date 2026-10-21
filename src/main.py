@@ -93,7 +93,7 @@ class App:
                                      font=("TkDefaultFont", 9))
         self.notes_label.pack(anchor="w")
         ttk.Checkbutton(notes,
-                        text="Standard PLA / PLA+ (ticked = PLA default, unticked = LW-PLA)",
+                        text="Regular filament (ticked = default, unticked = LW-PLA gradients)",
                         variable=self.std_pla_var,
                         command=self._on_filament_mode).pack(anchor="w", pady=(5, 0))
         self._refresh_notes()
@@ -238,7 +238,7 @@ class App:
         return start, end
 
     def _on_filament_mode(self):
-        """LW-PLA is the default; tick the box to gate to standard PLA/PLA+."""
+        """Regular filament (PLA/PLA+) is default; tick to enable LW-PLA temperature/flow gradients."""
         std = bool(self.std_pla_var.get())
         self.temp_enable_var.set(not std)
         self.flow_enable_var.set(not std)
@@ -263,15 +263,15 @@ class App:
                    "retraction 0.5 mm @ 30 mm/s · travel 180 mm/s\n")
         if bool(self.std_pla_var.get()):
             note = (printer +
-                    "Filament: PLA / PLA+ (standard, non-foaming) · temperature/flow "
-                    "ramp disabled — travel optimisation only\n"
+                    "Filament: Generic filament (PLA/PLA+) · temperature/flow "
+                    "gradient disabled — travel optimisation only\n"
                     "Slicer: PrusaSlicer · profile-independent travel reordering · "
                     "retraction is regenerated\n"
-                    "Gradients: off in this mode · the optimiser itself is material-agnostic")
+                    "Gradients: off · the optimiser itself is material-agnostic")
         else:
             note = (printer +
-                    "Filament: eSun LW-PLA (chemical foaming, default) · Extrusion "
-                    "Multiplier must be 1.0, otherwise M221 is only relative\n"
+                    "Filament: eSun LW-PLA (chemical foaming) · Extrusion Multiplier "
+                    "must be 1.0, otherwise M221 is relative\n"
                     "Slicer: PrusaSlicer 0.20 mm QUALITY · 1 perimeter · 0% infill · "
                     "part printed root/nose down so layers map to span/length\n"
                     "Gradients: linear over layer count · M221 multiplies the slicer EM · "

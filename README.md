@@ -6,47 +6,37 @@ cut non-extruding travel, without changing the deposited geometry.
 **Authorship:** OpenCode & Big Pickle and Prof. Greg Egan (2026) / need prompted
 by David Benner
 
-## Running
+## Download & Install
 
-```bash
-./GCODECrunch.sh        # clears __pycache__ and launches the GUI
-```
+### Option 1: Pre-Built Release (Recommended)
 
-`start_gcodecrunch.sh` is an identical alias.
+1. **Download** the latest release from the [Releases page](https://github.com/gke/GCodeCrunch/releases) for your OS:
 
-GCODECrunch is printer-agnostic and processes any Marlin-compatible G-code. PLA is the default mode for travel optimisation. LW-PLA mode is available to apply temperature and M221 flow gradients when required.
+| OS | File |
+| :-- | :-- |
+| Linux | `GCodeCrunch-vX.X.X-linux-x86_64.tar.gz` or `.zip` |
+| Windows | `GCodeCrunch-windows-x86_64.zip` or `GCodeCrunch-Setup-*.exe` |
+| macOS | `GCodeCrunch-macos-universal.zip` or `.dmg` |
 
-## Layout
+2. **Extract/Install**
+   - **Linux:** `tar xzf GCodeCrunch-*.tar.gz && chmod +x GCodeCrunch/GCODECrunch`
+   - **Windows:** Unzip the `.zip` or run the `Setup.exe` installer
+   - **macOS:** Unzip or open the `.dmg` and drag to Applications (right-click > Open on first launch if Gatekeeper blocks it)
 
-| Path | Contents |
-|---|---|
-| `main.py` | Root entry point — adds `src/` to the path and launches the GUI. |
-| `src/` | Application code: `main.py` (GUI), `gc_engine.py` (parser/optimiser library + CLI), `gc_gui.py` (earlier GUI wrapper). |
-| `scripts/` | Helpers and harnesses: `bench_gcode.py` (benchmark), `refresh_report_times.py` (re-measure and rewrite the report's time tables), diagnostics, geometry checks, legacy `GCODECrunch_v1/v2/NN` variants. |
-| `installer_kits/` | Packaging: `build.sh`, `build.bat`, Inno Setup `installer.iss`. |
-| `wiki/` | Documentation: `GCODECrunch_Report.md`/`.pdf` (development & performance report), `BUILD.md`, `PrusaSlicer_SV06Plus_SinglePerimeter_Settings.md`/`.pdf`. |
-| `bench_results.csv` | Latest benchmark output (per-file / per-strategy metrics). |
-| `GCODECrunch.spec` | PyInstaller spec (entry `main.py`, `pathex=['src']`). |
-| `.github/workflows/build.yml` | CI: builds on Linux/Windows/macOS, releases on `v*` tags. |
+3. **Run**
+   - **Linux:** `./GCodeCrunch/GCODECrunch`
+   - **Windows:** Launch `GCODECrunch.exe` or the installed shortcut
+   - **macOS:** Launch `GCodeCrunch.app`
 
-## Benchmarking
+### Option 2: Run From Source
 
-```bash
-python3 scripts/bench_gcode.py --dir "/path/to/gcode/folder"
-```
+1. **Clone:** `git clone https://github.com/gke/GCodeCrunch.git && cd GCodeCrunch`
+2. **Run:** `./GCODECrunch.sh` (or `python3 main.py`). Requires Python 3 with Tkinter installed.
 
-Emits Markdown tables (travel distance, estimated print time, time saved,
-optimizer wall time) and writes `bench_results.csv`.
+## Usage
 
-To push fresh numbers into the report and re-render the PDF in one step:
+Load your sliced `.gcode` file(s), leave **Standard PLA/PLA+** checked (default), and hit **Optimize**. The optimized file will be saved to an `OPT/` folder next to the original file(s). No files are overwritten.
 
-```bash
-python3 scripts/refresh_report_times.py              # re-measure + patch §6 + PDF
-python3 scripts/refresh_report_times.py --from-csv   # patch §6 from an existing CSV
-```
-
-See [`wiki/GCODECrunch_Report.md`](wiki/GCODECrunch_Report.md) for results.
-
-## Building installers
-
-See [`wiki/BUILD.md`](wiki/BUILD.md) and [`installer_kits/README.md`](installer_kits/README.md).
+- **PLA is the default.** Untick "Standard PLA/PLA+" to enable temperature and M221 flow gradients for LW-PLA.
+- **Printer agnostic.** Works with any Marlin-compatible G-code from PrusaSlicer, Cura, OrcaSlicer, etc.
+- **Slicer prep matters.** For single-perimeter shells, see `docs/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` in the release package and apply the cooling thresholds before slicing. Leaving them at defaults causes the ~16 mm/s slowdown.

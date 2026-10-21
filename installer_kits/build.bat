@@ -14,7 +14,7 @@ if exist dist rmdir /s /q dist
 
 REM Build
 echo Building...
-pyinstaller GCODECrunch.spec
+python -m PyInstaller GCODECrunch.spec
 
 echo === Build complete ===
 dir dist\

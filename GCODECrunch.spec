@@ -4,7 +4,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    ['src/main.py'],
     pathex=['src'],
     binaries=[],
     datas=[],
@@ -52,8 +52,8 @@ app = BUNDLE(
     info_plist={
         'CFBundleName': 'GCODECrunch',
         'CFBundleDisplayName': 'GCODECrunch',
-        'CFBundleVersion': '1.0.0',
-        'CFBundleShortVersionString': '1.0.0',
+        'CFBundleVersion': '1.1.0',
+        'CFBundleShortVersionString': '1.1.0',
         'NSHighResolutionCapable': True,
     },
 )

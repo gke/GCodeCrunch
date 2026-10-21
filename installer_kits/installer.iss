@@ -5,13 +5,13 @@
 
 [Setup]
 AppName=GCODECrunch
-AppVersion=1.0.0
+AppVersion=1.1.0
 AppPublisher=Greg Egan
 AppURL=https://github.com/gke/GCodeCrunch
 DefaultDirName={autopf}\GCODECrunch
 DefaultGroupName=GCODECrunch
 OutputDir=..\installer_output
-OutputBaseFilename=GCODECrunch-Setup-1.0.0
+OutputBaseFilename=GCODECrunch-Setup-1.1.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

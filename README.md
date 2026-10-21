@@ -14,15 +14,17 @@ by David Benner
 
 `start_gcodecrunch.sh` is an identical alias.
 
+GCODECrunch is printer-agnostic and processes any Marlin-compatible G-code. PLA is the default mode for travel optimisation. LW-PLA mode is available to apply temperature and M221 flow gradients when required.
+
 ## Layout
 
 | Path | Contents |
 |---|---|
 | `main.py` | Root entry point — adds `src/` to the path and launches the GUI. |
 | `src/` | Application code: `main.py` (GUI), `gc_engine.py` (parser/optimiser library + CLI), `gc_gui.py` (earlier GUI wrapper). |
-| `scripts/` | Helpers and harnesses: `bench_gcode.py` (benchmark), diagnostics, geometry checks, legacy `GCODECrunch_v1/v2/NN` variants. |
+| `scripts/` | Helpers and harnesses: `bench_gcode.py` (benchmark), `refresh_report_times.py` (re-measure and rewrite the report's time tables), diagnostics, geometry checks, legacy `GCODECrunch_v1/v2/NN` variants. |
 | `installer_kits/` | Packaging: `build.sh`, `build.bat`, Inno Setup `installer.iss`. |
-| `wiki/` | Documentation: `GCODECrunch_Report.md`/`.pdf` (development & performance report), `BUILD.md`. |
+| `wiki/` | Documentation: `GCODECrunch_Report.md`/`.pdf` (development & performance report), `BUILD.md`, `PrusaSlicer_SV06Plus_SinglePerimeter_Settings.md`/`.pdf`. |
 | `bench_results.csv` | Latest benchmark output (per-file / per-strategy metrics). |
 | `GCODECrunch.spec` | PyInstaller spec (entry `main.py`, `pathex=['src']`). |
 | `.github/workflows/build.yml` | CI: builds on Linux/Windows/macOS, releases on `v*` tags. |
@@ -34,8 +36,16 @@ python3 scripts/bench_gcode.py --dir "/path/to/gcode/folder"
 ```
 
 Emits Markdown tables (travel distance, estimated print time, time saved,
-optimizer wall time) and writes `bench_results.csv`. See
-[`wiki/GCODECrunch_Report.md`](wiki/GCODECrunch_Report.md) for results.
+optimizer wall time) and writes `bench_results.csv`.
+
+To push fresh numbers into the report and re-render the PDF in one step:
+
+```bash
+python3 scripts/refresh_report_times.py              # re-measure + patch §6 + PDF
+python3 scripts/refresh_report_times.py --from-csv   # patch §6 from an existing CSV
+```
+
+See [`wiki/GCODECrunch_Report.md`](wiki/GCODECrunch_Report.md) for results.
 
 ## Building installers
 

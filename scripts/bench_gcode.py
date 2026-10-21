@@ -108,6 +108,37 @@ def pct_saved(base, after):
     return (base - after) / base * 100.0
 
 
+def write_csv(rows, orders, csv_path):
+    """Write the raw per-file/per-strategy metrics used by the report."""
+    with open(csv_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["file", "bytes", "lines", "strategy", "travel_mm",
+                    "extrude_mm", "total_mm", "moves", "chosen", "layers",
+                    "segments", "seconds", "est_time_s", "error"])
+        for r in rows:
+            if r["base"]:
+                w.writerow([r["file"], r["bytes"], r["lines"], "BASELINE",
+                            "%.4f" % r["base"]["travel_dist"],
+                            "%.4f" % r["base"]["extrude_dist"],
+                            "%.4f" % r["base"]["total_dist"],
+                            r["base"]["moves"], "", r["base"]["layers"], "", "",
+                            "%.1f" % r.get("base_time", 0.0), ""])
+            for order in orders:
+                rr = r["runs"][order]
+                if rr.get("error"):
+                    w.writerow([r["file"], r["bytes"], r["lines"], order,
+                                "", "", "", "", "", "", "", "%.3f" % rr["seconds"],
+                                "", rr["error"]])
+                else:
+                    w.writerow([r["file"], r["bytes"], r["lines"], order,
+                                "%.4f" % rr["travel"], "%.4f" % rr["extrude"],
+                                "%.4f" % rr["total"],
+                                rr["moves"], rr["chosen"], rr["layers"],
+                                rr["segments"], "%.3f" % rr["seconds"],
+                                "%.1f" % (rr.get("est_time") or 0.0), ""])
+    print("wrote %s" % csv_path, file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=str(DEFAULT_DIR))
@@ -130,33 +161,7 @@ def main():
         rows.append(run_file(p, args.orders))
 
     # ---- CSV ---------------------------------------------------------------
-    csv_path = ROOT / "bench_results.csv"
-    with open(csv_path, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["file", "bytes", "lines", "strategy", "travel_mm",
-                    "extrude_mm", "total_mm", "moves", "chosen", "layers",
-                    "segments", "seconds", "est_time_s", "error"])
-        for r in rows:
-            if r["base"]:
-                w.writerow([r["file"], r["bytes"], r["lines"], "BASELINE",
-                            "%.4f" % r["base"]["travel_dist"],
-                            "%.4f" % r["base"]["extrude_dist"],
-                            "%.4f" % r["base"]["total_dist"],
-                            r["base"]["moves"], "", r["base"]["layers"], "", "", "%.1f" % r.get("base_time", 0.0), ""])
-            for order in args.orders:
-                rr = r["runs"][order]
-                if rr.get("error"):
-                    w.writerow([r["file"], r["bytes"], r["lines"], order,
-                                "", "", "", "", "", "", "", "%.3f" % rr["seconds"],
-                                "", rr["error"]])
-                else:
-                    w.writerow([r["file"], r["bytes"], r["lines"], order,
-                                "%.4f" % rr["travel"], "%.4f" % rr["extrude"],
-                                "%.4f" % rr["total"],
-                                rr["moves"], rr["chosen"], rr["layers"],
-                                rr["segments"], "%.3f" % rr["seconds"],
-                                "%.1f" % (rr.get("est_time") or 0.0), ""])
-    print("wrote %s" % csv_path, file=sys.stderr)
+    write_csv(rows, args.orders, ROOT / "bench_results.csv")
 
     # ---- Markdown ----------------------------------------------------------
     print("### Travel distance per strategy (mm)\n")

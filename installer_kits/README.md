@@ -14,7 +14,12 @@ All three scripts expect the PyInstaller spec `GCODECrunch.spec` (repo root) and
 must be run with the repo root as the working directory:
 
 ```bash
-# Linux / macOS
+# Linux
+./installer_kits/build.sh
+```
+
+```bash
+# macOS
 ./installer_kits/build.sh
 ```
 
@@ -29,7 +34,8 @@ The Inno Setup script is compiled with:
 iscc installer_kits/installer.iss
 ```
 
-It packages `dist/GCODECrunch.exe` into `installer_output/GCODECrunch-Setup-1.0.0.exe`.
+It packages `dist/GCODECrunch.exe` into `installer_output/GCODECrunch-Setup-1.1.0.exe`.
 
-CI (`.github/workflows/build.yml`) builds for all three platforms and attaches the
-artifacts to a GitHub Release when a `v*` tag is pushed.
+CI (`.github/workflows/build.yml`) builds for Linux, macOS, and Windows and attaches the
+artifacts to a GitHub Release when a `v*` tag is pushed. GCODECrunch is printer-agnostic and
+processes any Marlin-compatible G-code; PLA is the default mode.

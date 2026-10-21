@@ -31,14 +31,14 @@ MOVE_CMDS = ("G0", "G1", "G00", "G01")
 
 DEFAULTS = {
     "allow_reverse": True,
-    "retract": True,
+    "retract": False,
     "retract_len": None,     # auto-detect from file
     "retract_feed": 1800.0,
     "prime_feed": 1800.0,
     "travel_feed": 8000.0,
     "z_hop": 0.0,            # extra Z clearance during travel (0 = off)
     "min_travel": 0.05,      # ignore connections shorter than this (mm)
-    "order": "greedy",       # greedy | greedy+2opt | greedy+2opt+oropt | verbatim | auto
+    "order": "greedy+2opt+oropt",  # greedy | greedy+2opt | greedy+2opt+oropt | verbatim | auto
     "two_opt_max_segments": 800,  # skip 2-opt on layers with more segments
     "two_opt_max_moves": 20000,   # cap accepted 2-opt moves per layer
     "or_opt_max_segments": 120,   # skip Or-opt on layers with more segments
@@ -96,7 +96,7 @@ def split_layers(lines):
 # State
 # --------------------------------------------------------------------------- #
 class State:
-    __slots__ = ("x", "y", "z", "e", "abs_e")
+    __slots__ = ("x", "y", "z", "e", "abs_e", "f")
 
     def __init__(self):
         self.x = 0.0
@@ -104,10 +104,11 @@ class State:
         self.z = 0.0
         self.e = 0.0
         self.abs_e = False
+        self.f = 0.0
 
     def clone(self):
         s = State()
-        s.x, s.y, s.z, s.e, s.abs_e = self.x, self.y, self.z, self.e, self.abs_e
+        s.x, s.y, s.z, s.e, s.abs_e, s.f = self.x, self.y, self.z, self.e, self.abs_e, self.f
         return s
 
 
@@ -121,10 +122,12 @@ def apply_move(state, mv):
         ne = mv["e"] if state.abs_e else pe + mv["e"]
     else:
         ne = pe
+    # Modal feedrate: F applies to this move, and to later moves without F.
+    f_eff = mv["f"] if mv["f"] is not None else state.f
     dx, dy, dz = nx - px, ny - py, nz - pz
     dist = math.sqrt(dx * dx + dy * dy + dz * dz)
     de = ne - pe
-    state.x, state.y, state.z, state.e = nx, ny, nz, ne
+    state.x, state.y, state.z, state.e, state.f = nx, ny, nz, ne, f_eff
     return {
         "src": (px, py, pz),
         "dst": (nx, ny, nz),
@@ -135,6 +138,7 @@ def apply_move(state, mv):
         "has_z": (mv["z"] is not None),
         "has_e": (mv["e"] is not None),
         "f": mv["f"],
+        "f_eff": f_eff,
         "extrude": de > 1e-9,
     }
 
@@ -248,6 +252,7 @@ def estimate_time(lines, opts=None):
     x = y = z = e = 0.0
     abs_e = False
     t_sec = 0.0
+    f = None            # modal feedrate (mm/min); None until the file sets one
     for ln in lines:
         b = ln.split(';', 1)[0].strip()
         if not b:
@@ -257,7 +262,8 @@ def estimate_time(lines, opts=None):
         if cmd in ("M82", "M83"):
             abs_e = (cmd == "M82")
             continue
-        if cmd.startswith("G4"):
+        if cmd in ("G4", "G04"):
+            # dwell: P (ms) or S (s)
             for t in toks[1:]:
                 c = t[0].upper()
                 try:
@@ -636,7 +642,8 @@ def strip_control(lines, keep_e=False):
 # Emission
 # --------------------------------------------------------------------------- #
 def _fmt(v):
-    return ("%.4f" % v).rstrip("0").rstrip(".")
+    # 5 dp = 0.00001 mm; preserves the slicer's E precision (X/Y/Z use fewer).
+    return ("%.5f" % v).rstrip("0").rstrip(".")
 
 
 def emit_segment(ordered, state, out, opts):
@@ -687,15 +694,15 @@ def emit_segment(ordered, state, out, opts):
 
         if not rev:
             for d in seg.moves:
-                out.append(_emit_forward_line(d, state))
+                out.append(_emit_forward_line(d, state, opts.get("print_feed")))
         else:
             for d in reversed(seg.moves):
-                out.append(_emit_reverse_line(d, state))
+                out.append(_emit_reverse_line(d, state, opts.get("print_feed")))
 
     return out
 
 
-def _emit_forward_line(d, state):
+def _emit_forward_line(d, state, default_feed=None):
     """Reconstruct a forward extrusion line from move detail."""
     line = "G1 X%s Y%s" % (_fmt(d["dst"][0]), _fmt(d["dst"][1]))
     if d["dst"][2] != state.z:
@@ -707,13 +714,14 @@ def _emit_forward_line(d, state):
     else:
         line += " E%s" % _fmt(d["de"])
         state.e += d["de"]
-    if d["f"]:
-        line += " F%s" % _fmt(d["f"])
+    f = d.get("f_eff") or d.get("f") or default_feed
+    if f:
+        line += " F%s" % _fmt(f)
     state.x, state.y, state.z = d["dst"]
     return line + "\n"
 
 
-def _emit_reverse_line(d, state):
+def _emit_reverse_line(d, state, default_feed=None):
     """Emit a move reversed: travel to the *source* point of the original move."""
     sx, sy, sz = d["src"]
     line = "G1 X%s Y%s" % (_fmt(sx), _fmt(sy))
@@ -726,8 +734,9 @@ def _emit_reverse_line(d, state):
     else:
         line += " E%s" % _fmt(d["de"])
         state.e += d["de"]
-    if d["f"]:
-        line += " F%s" % _fmt(d["f"])
+    f = d.get("f_eff") or d.get("f") or default_feed
+    if f:
+        line += " F%s" % _fmt(f)
     state.x, state.y, state.z = sx, sy, sz
     return line + "\n"
 

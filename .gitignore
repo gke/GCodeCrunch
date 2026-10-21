@@ -6,6 +6,7 @@ __pycache__/
 build/
 dist/
 *.pyz
+.build-venv/
 
 # Packaging output
 installer_output/

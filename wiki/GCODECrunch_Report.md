@@ -29,7 +29,7 @@ removes **63.6 %** of non-extruding travel:
 | `auto` (adopt best) | 1 182 242.9 | 63.6 % | 163.6 |
 
 The extruding distance is preserved to within < 0.001 % (correctness invariant).
-Wall times are for the full eight-file set on the current machine (optimizer runtime, not print time). Print-time estimates are in §6, Iteration 6; per-strategy/per-file optimizer wall times are in §6, Iteration 6b.
+Wall times are for the full eight-file set on the current machine (optimizer runtime, not print time). Per-strategy/per-file optimizer wall times are in §6, Iteration 6.
 
 Three findings stand out. First, the greedy seed already captures most of the
 available saving; 2-opt and Or-opt add successive ~3 % and ~0.9 %. Second,
@@ -93,20 +93,29 @@ every test file and emits:
 - a Markdown results block (pasted here verbatim), and
 - `bench_results.csv` (raw per-file/per-strategy metrics).
 
-Run:
+To refresh the report's own numbers, use `scripts/refresh_report_times.py`
+instead — it runs the benchmark, rewrites `bench_results.csv`, and replaces the
+generated block in §6 (the region between the `<!-- BEGIN ... -->` /
+`<!-- END ... -->` markers) before re-rendering the PDF:
 
 ```bash
-python3 scripts/bench_gcode.py --dir "/home/gke/Documents/Flight/3D Projects/Aircraft/Planks/Gruel/Gruel EMX07/GCODE"
+python3 scripts/refresh_report_times.py          # ~3 min, ends by writing the PDF
+python3 scripts/refresh_report_times.py --dry-run
+python3 scripts/refresh_report_times.py --from-csv --no-pdf
 ```
 
-`gc_engine.estimate_time` produces a feedrate-based print-time estimate (mm/min
-modal feedrates, constant velocity, ignores acceleration/jerk). Validated against
-the slicers' own estimates: Cura `;TIME:` (Elevon: 410 s vs 452 s estimated,
-+10 %) and PrusaSlicer `; estimated printing time` (Wing Plates 2 610 s). An
-earlier overestimate on PrusaSlicer files (Wing Plates 3 919 s) was caused by
-ignoring `F`-only speed lines (`G1 F1200`); the modal feedrate is now updated on
-every move that carries an `F`, including zero-length ones. The print-time table
-in §6 (Iteration 6) predates that fix and should be re-run to refresh the numbers.
+Nothing inside those markers is hand-maintained, and the generated block carries
+a *"Measured \<date\>"* stamp, so the tables cannot silently drift from the data.
+Only the prose outside the markers is written by hand.
+
+The report deliberately does **not** tabulate estimated print times.
+`gc_engine.estimate_time` still exists and the benchmark still emits an
+`est_time_s` column, but the figures are not reliable enough to publish: a
+feedrate-only model that ignores acceleration, jerk and slicer embellishments
+disagreed with the slicers' own estimates by tens of percent on this test set,
+ranging from +50 % to −31 % depending on how the file interleaves its `F` words
+with moves. Travel distance is the trustworthy optimisation metric, so that is
+what the tables report.
 
 ---
 
@@ -123,6 +132,11 @@ in §6 (Iteration 6) predates that fix and should be re-run to refresh the numbe
 | v3.4 | + 2-opt & auto | Open-path 2-opt local search; `auto` scores candidates and adopts the best. |
 | v3.5 | + Or-opt | Single-segment relocation local search (optionally reversed) run after 2-opt; added to `auto`'s candidate pool. |
 | v3.6 | + inter-layer coupling | `couple_layers` option: re-sweep each layer so its exit steers toward the next layer's entry. Best sweep kept; strictly non-worsening. |
+| v3.7 | + flow gradient | Layer-count-based `M221` flow ramp (`start%`→`end%`) alongside the temperature gradient; rewrites existing `M221` lines or inserts one per layer; warns when the slicer extrusion multiplier ≠ 1.0. |
+| v3.8 | + retraction & assumptions | GUI regenerates retractions on travel (auto-detected length/feed), uses the file's fastest travel feed, and shows the assumed printer/material/slicer settings at the top. |
+| v3.9 | + material gate | LW-PLA remains the default. A "Standard PLA / PLA+" checkbox disables the temperature/flow ramp and runs travel optimisation only. |
+| v4.0 | + parameter filenames | Optimised outputs append the key parameters to the filename: material mode, temp/flow range, infill, wall count, extrusion multiplier (if not 1.0), retraction state, and travel feed. |
+| v4.1 | + feedrate preservation | Tracks modal `F` through reordering and writes the intended extrusion feed on every emitted move. Previously, regenerated travels set the travel feed and many re-emitted extrusion moves inherited it (e.g. `F8000` instead of `F1200`), causing severe under-extrusion. Emitter raised to 5 dp so E matches slicer precision. |
 
 ---
 
@@ -354,57 +368,13 @@ well-chosen final edge. The two large `T` files dominate the gain; the dense `LR
 and the small `Elevon`/`Wing` files were already well coupled, and `auto` selects
 the coupled result everywhere it helps.
 
-### Iteration 6 — Estimated print time
-
-The time estimates below are feedrate-based (Marlin mm/min), summing
-`distance/move_feed` with per-move `F` values or sensible defaults for
-travel/extrude moves. They exclude acceleration, non-linear effects, retraction
-dwell logic and slicer embellishments; the reduction percentages track the travel
-savings closely and are a useful ballpark for real print time.
-
-**Estimated print time (seconds):**
-
-| File | Baseline | verbatim | greedy | greedy+2opt | greedy+2opt+oropt@0 | greedy+2opt+oropt | auto |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Elevon Horn x 2.gcode | 452.2 | 450.9 | 449.8 | 448.8 | 444.2 | 444.2 | 444.2 |
-| Gruel Wing Plates.gcode | 3 918.6 | 3 914.1 | 3 893.1 | 3 890.4 | 3 889.6 | 3 889.6 | 3 889.6 |
-| LOuterGruel VI.gcode | 11 771.7 | 11 954.0 | 11 322.6 | 11 320.3 | 11 320.9 | 11 320.1 | 11 320.1 |
-| LR Gruel VI.gcode | 25 199.6 | 25 742.1 | 23 975.4 | 23 744.3 | 23 722.2 | 23 722.2 | 23 722.2 |
-| LT Gruel VI.gcode | 44 331.5 | 45 459.1 | 42 721.3 | 42 297.4 | 42 427.7 | 42 278.1 | 42 278.1 |
-| ROuterGruel VI.gcode | 11 767.5 | 11 953.4 | 11 324.7 | 11 319.9 | 11 320.5 | 11 319.8 | 11 319.8 |
-| RR Gruel VI.gcode | 28 345.6 | 29 124.0 | 26 370.8 | 26 190.5 | 26 139.3 | 26 135.6 | 26 135.6 |
-| RT Gruel VI.gcode | 45 211.9 | 46 727.7 | 42 656.2 | 42 242.4 | 42 309.6 | 42 226.4 | 42 226.4 |
-| TOTAL | 170 998.5 | 175 325.2 | 162 714.0 | 161 454.0 | 161 573.9 | 161 336.1 | 161 336.1 |
-
-**Estimated time saved vs baseline (%):**
-
-| File | verbatim | greedy | greedy+2opt | greedy+2opt+oropt@0 | greedy+2opt+oropt | auto |
-|---|---:|---:|---:|---:|---:|---:|
-| Elevon Horn x 2.gcode | 0.3 | 0.5 | 0.7 | 1.8 | 1.8 | 1.8 |
-| Gruel Wing Plates.gcode | 0.1 | 0.6 | 0.7 | 0.7 | 0.7 | 0.7 |
-| LOuterGruel VI.gcode | −1.5 | 3.8 | 3.8 | 3.8 | 3.8 | 3.8 |
-| LR Gruel VI.gcode | −2.2 | 4.9 | 5.8 | 5.9 | 5.9 | 5.9 |
-| LT Gruel VI.gcode | −2.5 | 3.6 | 4.6 | 4.3 | 4.6 | 4.6 |
-| ROuterGruel VI.gcode | −1.6 | 3.8 | 3.8 | 3.8 | 3.8 | 3.8 |
-| RR Gruel VI.gcode | −2.7 | 7.0 | 7.6 | 7.8 | 7.8 | 7.8 |
-| RT Gruel VI.gcode | −3.4 | 5.7 | 6.6 | 6.4 | 6.6 | 6.6 |
-| TOTAL | −2.5 | 4.8 | 5.6 | 5.5 | 5.7 | 5.7 |
-
-Full-set baseline estimated time: **170 998.5 s** (~47.5 h). With
-`greedy+2opt+oropt` (coupled): **161 336.1 s** (~44.8 h), an estimated
-**−5.7 %** reduction overall, tracking the travel savings (−63.6 % travel).
-The gap between the two percentages is expected: travel is only part of print
-time — the extruding moves, which the optimiser does not touch, still account
-for roughly 150 000 s of the total.
-
-### Iteration 6b — Optimizer wall time
+### Iteration 6 — Optimizer wall time
 
 This is the *compute* time the reorder/search passes take to produce each
-optimised file — the opposite side of the coin from the estimated print time in
-§6, Iteration 6. It is
-measured with `time.perf_counter()` around each strategy run in
+optimised file, measured with `time.perf_counter()` around each strategy run in
 `bench_gcode.py` (`seconds` column in `bench_results.csv`).
 
+<!-- BEGIN OPT TIME (generated by scripts/refresh_report_times.py -- do not edit) -->
 **Optimizer wall time per file (seconds), `greedy+2opt+oropt` (coupled):**
 
 | File | Lines | Segments | Optimizer time (s) | Time per 1k lines (ms) |
@@ -430,21 +400,23 @@ measured with `time.perf_counter()` around each strategy run in
 | `greedy+2opt+oropt` (coupled) | 61.7 | 63.6 % | 0.97 |
 | `auto` (adopt best) | 163.6 | 63.6 % | 2.57 |
 
-**Commentary.** Cost tracks *segments per layer*, not line count, because the
-local searches are O(n²)–O(n³) per layer: `Gruel Wing Plates` packs 852 segments
-into just 25 layers (~34/layer) and so costs 68 ms per thousand lines, while
-`LT` spreads 22 067 segments over 2 206 layers (~10/layer) and runs at 14 ms per
-thousand lines despite being 46× longer. `greedy` is by far the most efficient
-(0.33 s per % of travel removed) — it captures 57.9 % of the saving for 19 s of
-work. The local searches cost ~3× more but buy only the last ~5 points; `auto`
-is the most expensive because it builds and scores every candidate. All of these
-are trivially cheap relative to a print lasting tens of hours: the entire
-`greedy+2opt+oropt` (coupled) pass spends **~64 s** to save an estimated
-**9 662 s** (~2.7 h) of print time across the set — a ~150× return on compute.
+<!-- END OPT TIME -->
 
-*(The per-file total, 63.91 s, and the per-strategy figure in §1, 61.7 s, are
-separate runs of the same strategy; wall-clock timings vary by a few percent
-between runs.)*
+**Commentary.** Cost tracks *segments per layer*, not line count, because the
+local searches are O(n²)–O(n³) per layer. `Gruel Wing Plates` packs its segments
+into a couple of dozen very dense layers, so it costs far more per thousand lines
+than `LT`, which spreads a much larger segment budget over ~2 200 thin layers and
+is ~45× longer yet cheaper to optimise end to end. `greedy` is by far the most
+efficient strategy — it captures the bulk of the saving for seconds of work — and
+the local searches spend a few times more to buy only the last handful of points.
+`auto` is the most expensive, because it builds and scores every candidate before
+adopting the best.
+
+All of these are trivially cheap next to a print lasting tens of hours: the
+generated figures above put the return on compute at roughly two orders of
+magnitude. Timings vary by a few percent between runs, and the per-strategy
+totals quoted in §1 are a separate measurement, so treat small differences
+between the two as run-to-run noise.
 
 ### Iteration 7 — (next)
 
@@ -511,7 +483,7 @@ typical layers, so the remaining causes are structural:
   `two_opt_max_segments` (800) skip the corresponding search; only a handful of
   layers in this set exceed them.
 - **Coupling convergence** — one sweep captures essentially all the gain; a second
-  sweep buys ≲ 0.1 %. The chain is solved to a good, not provably global, optimum.
+  sweep buys <= 0.1 %. The chain is solved to a good, not provably global, optimum.
 
 Per-layer isolation was the largest listed cause in earlier drafts; it is now
 addressed by `couple_layers` (Iteration 5).

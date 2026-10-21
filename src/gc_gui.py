@@ -49,27 +49,12 @@ class App:
         self.listbox = tk.Listbox(mid, selectmode="extended")
         self.listbox.pack(fill="both", expand=True)
 
-        opts = ttk.LabelFrame(self.root, text="Engine options", padding=10)
+        opts = ttk.LabelFrame(self.root, text="Options", padding=10)
         opts.pack(fill="x", padx=10, pady=5)
 
         self.reverse_var = tk.BooleanVar(value=gc_engine.DEFAULTS["allow_reverse"])
         ttk.Checkbutton(opts, text="allow reverse (boustrophedon)",
                         variable=self.reverse_var).pack(side="left")
-
-        self.retract_var = tk.BooleanVar(value=gc_engine.DEFAULTS["retract"])
-        ttk.Checkbutton(opts, text="retract", variable=self.retract_var).pack(side="left", padx=(10, 0))
-
-        self.rlen_var = tk.StringVar(value="auto")
-        ttk.Label(opts, text="Retract len:").pack(side="left", padx=(15, 0))
-        ttk.Entry(opts, textvariable=self.rlen_var, width=7).pack(side="left", padx=2)
-
-        self.rfeed_var = tk.StringVar(value=str(gc_engine.DEFAULTS["retract_feed"]))
-        ttk.Label(opts, text="Retract F:").pack(side="left", padx=(10, 0))
-        ttk.Entry(opts, textvariable=self.rfeed_var, width=7).pack(side="left", padx=2)
-
-        self.pfeed_var = tk.StringVar(value=str(gc_engine.DEFAULTS["prime_feed"]))
-        ttk.Label(opts, text="Prime F:").pack(side="left", padx=(10, 0))
-        ttk.Entry(opts, textvariable=self.pfeed_var, width=7).pack(side="left", padx=2)
 
         row2 = ttk.Frame(opts)
         row2.pack(fill="x", pady=(8, 0))
@@ -88,12 +73,10 @@ class App:
 
         ttk.Button(row2, text="Reset to defaults", command=self.reset_opts).pack(side="left", padx=15)
 
-        act = ttk.LabelFrame(self.root, text="Analyze & optimize", padding=10)
+        act = ttk.LabelFrame(self.root, text="Optimize", padding=10)
         act.pack(fill="x", padx=10, pady=5)
-        ttk.Button(act, text="Analyze Selected", command=self.analyze_sel).pack(side="left")
-        ttk.Button(act, text="Analyze All", command=self.analyze_all).pack(side="left", padx=5)
-        ttk.Button(act, text="NN Reorder Selected", command=self.nn_sel).pack(side="left", padx=(15, 0))
-        ttk.Button(act, text="NN Reorder All", command=self.nn_all).pack(side="left", padx=5)
+        ttk.Button(act, text="Optimize Selected", command=self.nn_sel).pack(side="left")
+        ttk.Button(act, text="Optimize All", command=self.nn_all).pack(side="left", padx=5)
 
         self.pb = ttk.Progressbar(self.root, mode="determinate")
         self.pb.pack(fill="x", padx=10, pady=5)
@@ -155,26 +138,18 @@ class App:
     def reset_opts(self):
         d = gc_engine.DEFAULTS
         self.reverse_var.set(d["allow_reverse"])
-        self.retract_var.set(d["retract"])
-        self.rlen_var.set("auto")
-        self.rfeed_var.set(str(d["retract_feed"]))
-        self.pfeed_var.set(str(d["prime_feed"]))
         self.tfeed_var.set(str(d["travel_feed"]))
         self.zhop_var.set(str(d["z_hop"]))
         self.mintravel_var.set(str(d["min_travel"]))
 
     def get_opts(self):
-        rlen = self.rlen_var.get().strip().lower()
-        retract_len = None if rlen in ("", "auto") else float(rlen)
         return {
             "allow_reverse": bool(self.reverse_var.get()),
-            "retract": bool(self.retract_var.get()),
-            "retract_len": retract_len,
-            "retract_feed": float(self.rfeed_var.get()),
-            "prime_feed": float(self.pfeed_var.get()),
             "travel_feed": float(self.tfeed_var.get()),
             "z_hop": float(self.zhop_var.get()),
             "min_travel": float(self.mintravel_var.get()),
+            "order": "greedy+2opt+oropt",
+            "couple_layers": 1,
         }
 
     def out_dir_for(self, src):
@@ -251,11 +226,12 @@ class App:
                 saved = before["travel_dist"] - after["travel_dist"]
                 savedp = (saved / before["travel_dist"] * 100.0) if before["travel_dist"] > 0 else 0.0
                 self.log(
-                    f"NN: {out.name}\n"
+                    f"Optimized: {out.name}\n"
                     f"  BEFORE {before['travel_dist']:.0f}mm ({before['travel_pct']:.1f}%)\n"
                     f"  AFTER  {after['travel_dist']:.0f}mm ({after['travel_pct']:.1f}%)\n"
                     f"  SAVED  {saved:.0f}mm ({savedp:.1f}% reduction)\n"
-                    f"  layers={info['layers_reordered']} segments={info['segments']}\n\n")
+                    f"  order={info.get('order')} layers={info['layers_reordered']} "
+                    f"segments={info['segments']}\n\n")
             else:
                 self.log(f"NN: {out.name} (analysis unavailable)\n\n")
             self.pb["value"] = 0

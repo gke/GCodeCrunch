@@ -146,8 +146,7 @@ class App(BaseApp):
                     validatecommand=(temp.register(self._chk_pct), "%P")
                     ).pack(side="left", padx=2)
         ttk.Label(row2, foreground="#777777",
-                  text="M221 multiplies with the filament Extrusion Multiplier — set EM to 1.0 "
-                       "for predictable flow (Total = EM × M221)."
+                  text="M221 flow gradient applied over the layer."
                   ).pack(side="left", padx=(12, 0))
 
         act = ttk.LabelFrame(self.root, text="Optimize", padding=10)
@@ -266,7 +265,7 @@ class App(BaseApp):
                     "Filament: Chemical foaming material (EM must be 1.0, otherwise M221 is relative)\n"
                     "Slicer: Unknown · 1 perimeter · 0% infill · "
                     "part printed root/nose down so layers map to span/length\n"
-                    "Gradients: linear over layer count · M221 multiplies the slicer EM · "
+                    "Gradients: linear over layer count · M221 flow applied over layer · "
                     "travels use the file's fastest feed and retraction is regenerated")
         self.notes_label.config(text=note)
 
@@ -390,7 +389,6 @@ class App(BaseApp):
             em = None
         if em is not None and abs(em - 1.0) > 1e-3:
             parts.append(f"EM{em:g}")
-
         parts.append("retract" if opts.get("retract") else "noretract")
         tf = opts.get("travel_feed")
         if tf:

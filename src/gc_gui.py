@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gc_gui.py - tkinter front-end for gc_engine.
+gc_gui.py - tkinter front-end for gc_engine (legacy / minimal variant).
 
 GCODECrunch GUI
 Written by OpenCode & Big Pickle with assistance of Professor Greg Egan (2026)
@@ -11,22 +11,19 @@ to a window: file selection, the reorder options, and a results log.
 
 import sys
 from pathlib import Path
-from datetime import datetime
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gc_engine
+from app_common import BaseApp
 
-GCODE_PATTERNS = ("*.gcode", "*.gco", "*.g", "*.nc")
 
-
-class App:
+class App(BaseApp):
     def __init__(self, root):
-        self.root = root
+        super().__init__(root)
         self.root.title("GCODECrunch - gc_engine GUI")
         self.root.geometry("1150x850")
-        self.files = []
         self._build_ui()
 
     # ------------------------------------------------------------------ UI ---
@@ -92,49 +89,6 @@ class App:
     def log(self, text):
         self.res.insert(tk.END, text)
 
-    def browse_file(self):
-        f = filedialog.askopenfilename(
-            filetypes=[("G-Code", "*.gcode *.gco *.g *.nc"), ("All", "*.*")])
-        if f:
-            self.path_var.set(f)
-            self.files = [Path(f)]
-            self.refresh_list()
-
-    def browse_folder(self):
-        d = filedialog.askdirectory()
-        if d:
-            self.path_var.set(d)
-            self.load_all()
-
-    def load_all(self):
-        p = self.path_var.get()
-        if not p:
-            d = filedialog.askdirectory()
-            if not d:
-                return
-            p = d
-            self.path_var.set(p)
-        path = Path(p)
-        if path.is_file():
-            self.files = [path]
-        else:
-            files = []
-            for pat in GCODE_PATTERNS:
-                files.extend(path.glob(pat))
-            self.files = sorted(set(files))
-        self.refresh_list()
-
-    def refresh_list(self):
-        self.listbox.delete(0, tk.END)
-        for f in self.files:
-            self.listbox.insert(tk.END, f.name)
-
-    def get_selected(self):
-        sel = self.listbox.curselection()
-        if not sel:
-            return list(self.files)
-        return [self.files[i] for i in sel]
-
     def reset_opts(self):
         d = gc_engine.DEFAULTS
         self.reverse_var.set(d["allow_reverse"])
@@ -158,12 +112,8 @@ class App:
         outdir.mkdir(exist_ok=True)
         return outdir
 
-    def update_p(self, cur, tot):
-        if tot > 0:
-            pct = cur * 100.0 / tot
-            self.pb["value"] = pct
-            self.pl.config(text=f"{cur:,}/{tot:,} ({pct:.1f}%)")
-            self.root.update_idletasks()
+    def out_name(self, src, ts):
+        return f"{ts}_NN_{src.name}"
 
     # ------------------------------------------------------------- actions ---
     def analyze_sel(self):
@@ -199,44 +149,6 @@ class App:
 
     def nn_all(self):
         self.nn(self.files)
-
-    def nn(self, items):
-        try:
-            opts = self.get_opts()
-        except ValueError:
-            messagebox.showerror("Error", "Invalid engine option value")
-            return
-        self.res.delete("1.0", tk.END)
-        if not items:
-            self.log("No files loaded.\n")
-            return
-        ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        for f in items:
-            f = Path(f)
-            out = self.out_dir_for(f) / f"{ts}_NN_{f.name}"
-            self.pl.config(text=f"Reordering {f.name}...")
-            try:
-                before, after, info = gc_engine.nn_reorder_file(
-                    str(f), str(out), opts, self.update_p)
-            except Exception as e:
-                self.log(f"ERR {f.name}: {e}\n")
-                self.pb["value"] = 0
-                continue
-            if before and after:
-                saved = before["travel_dist"] - after["travel_dist"]
-                savedp = (saved / before["travel_dist"] * 100.0) if before["travel_dist"] > 0 else 0.0
-                self.log(
-                    f"Optimized: {out.name}\n"
-                    f"  BEFORE {before['travel_dist']:.0f}mm ({before['travel_pct']:.1f}%)\n"
-                    f"  AFTER  {after['travel_dist']:.0f}mm ({after['travel_pct']:.1f}%)\n"
-                    f"  SAVED  {saved:.0f}mm ({savedp:.1f}% reduction)\n"
-                    f"  order={info.get('order')} layers={info['layers_reordered']} "
-                    f"segments={info['segments']}\n\n")
-            else:
-                self.log(f"NN: {out.name} (analysis unavailable)\n\n")
-            self.pb["value"] = 0
-        self.pl.config(text="Ready")
-        self.root.update_idletasks()
 
 
 def main():

@@ -11,6 +11,14 @@ dist/
 # Packaging output
 installer_output/
 
+# Generated artifacts / reports
+bench_results.csv
+wiki/*.pdf
+*.tar.gz
+*.zip
+GCODECrunch-v*.tar.gz
+GCODECrunch-*.tar.gz
+
 # Editor / OS
 *.swp
 .DS_Store

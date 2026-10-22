@@ -4,11 +4,12 @@
 block_cipher = None
 
 a = Analysis(
-    ['src/main.py'],
+    ['main.py'],
     pathex=['src'],
     binaries=[],
     datas=[],
-    hiddenimports=['gc_engine', 'gc_gui'],
+    hiddenimports=['gc_engine', 'gc_gui', 'gc_parser', 'gc_optimizer', 'gc_emitter', 'app_common',
+                    'tkinter', 'tkinter.ttk', 'tkinter.filedialog', 'tkinter.messagebox', 'tkinter.font'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

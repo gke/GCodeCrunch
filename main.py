@@ -8,7 +8,7 @@ SRC = os.path.join(ROOT, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-import main as _app
+import gc_app as _app
 
 if __name__ == "__main__":
     _app.main()

@@ -19,20 +19,13 @@ from tkinter import font as tkfont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gc_engine
-
-GCODE_PATTERNS = ("*.gcode", "*.gco", "*.g", "*.nc")
-
-
-def safe_name(name):
-    """Return a filesystem-safe stem (spaces and unicode kept for readability)."""
-    stem = Path(name).stem
-    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", stem)
-    stem = re.sub(r"\s+", " ", stem).strip(" .")
-    return stem[:100].rstrip(" .") or "output"
+import app_common
+from app_common import BaseApp, safe_name
 
 
-class App:
+class App(BaseApp):
     def __init__(self, root):
+        super().__init__(root)
         self.root = root
         self.root.title("GCODECrunch")
         self.root.geometry("1150x1000")
@@ -53,17 +46,15 @@ class App:
         border = "#cccccc"
         try:
             style.theme_use("clam")
-            # checkbox size: double the base font (100% increase)
+            # checkbox indicator doubled (scale 2.0); label text stays at base size
             base_size = tkfont.nametofont("TkDefaultFont").actual("size")
-            cb_font_size = int(abs(base_size) * 2) or 24
-
             self.root.configure(bg=bg)
             style.configure("TFrame", background=bg)
             style.configure("TLabel", background=bg, foreground=fg)
             style.configure("TLabelFrame", background=bg, foreground=fg)
             style.configure("TLabelframe.Label", background=bg, foreground=fg)
             style.configure("TCheckbutton", background=bg, foreground=fg,
-                            font=("TkDefaultFont", 10), scale=2.0)
+                            font=("TkDefaultFont", max(8, int(abs(base_size) or 10))), scale=2.0)
             style.configure("TButton", background="#f0f0f0", foreground=fg)
             style.map("TButton", background=[("active", "#e0e0e0")])
             style.configure("Accent.TButton", background=accent, foreground="#ffffff")
@@ -93,7 +84,7 @@ class App:
                                      font=("TkDefaultFont", 9))
         self.notes_label.pack(anchor="w")
         ttk.Checkbutton(notes,
-                        text="Regular filament (ticked = default, unticked = LW-PLA gradients)",
+                        text="Standard filament (ticked = default, unticked = gradient mode)",
                         variable=self.std_pla_var,
                         command=self._on_filament_mode).pack(anchor="w", pady=(5, 0))
         self._refresh_notes()
@@ -197,7 +188,8 @@ class App:
             return True
         if not val.isdigit():
             return False
-        return int(val) <= self.TEMP_MAX
+        v = int(val)
+        return self.TEMP_MIN <= v <= self.TEMP_MAX
 
     def _chk_pct(self, val):
         """Flow spinbox validation: digits only, within [FLOW_MIN, FLOW_MAX]."""
@@ -205,7 +197,8 @@ class App:
             return True
         if not val.isdigit():
             return False
-        return int(val) <= self.FLOW_MAX
+        v = int(val)
+        return self.FLOW_MIN <= v <= self.FLOW_MAX
 
     def _get_temps(self):
         """Return (start, end) clamped to bounds, with start < end enforced."""
@@ -259,20 +252,19 @@ class App:
             self._set_frame_state(child, enabled)
 
     def _refresh_notes(self):
-        printer = ("Printer: Sovol SV06 Plus · 0.4 mm nozzle · Marlin · 300×300 bed · "
+        printer = ("Printer: Generic printer · 0.4 mm nozzle · Marlin · 300×300 bed · "
                    "retraction 0.5 mm @ 30 mm/s · travel 180 mm/s\n")
         if bool(self.std_pla_var.get()):
             note = (printer +
-                    "Filament: Generic filament (PLA/PLA+) · temperature/flow "
+                    "Filament: Generic filament (PLA) · temperature/flow "
                     "gradient disabled — travel optimisation only\n"
-                    "Slicer: PrusaSlicer · profile-independent travel reordering · "
+                    "Slicer: Unknown · profile-independent travel reordering · "
                     "retraction is regenerated\n"
                     "Gradients: off · the optimiser itself is material-agnostic")
         else:
             note = (printer +
-                    "Filament: eSun LW-PLA (chemical foaming) · Extrusion Multiplier "
-                    "must be 1.0, otherwise M221 is relative\n"
-                    "Slicer: PrusaSlicer 0.20 mm QUALITY · 1 perimeter · 0% infill · "
+                    "Filament: Chemical foaming material (EM must be 1.0, otherwise M221 is relative)\n"
+                    "Slicer: Unknown · 1 perimeter · 0% infill · "
                     "part printed root/nose down so layers map to span/length\n"
                     "Gradients: linear over layer count · M221 multiplies the slicer EM · "
                     "travels use the file's fastest feed and retraction is regenerated")
@@ -308,7 +300,7 @@ class App:
             self.files = [path]
         else:
             files = []
-            for pat in GCODE_PATTERNS:
+            for pat in app_common.GCODE_PATTERNS:
                 files.extend(path.glob(pat))
             self.files = sorted(set(files))
         self.refresh_list()
@@ -478,8 +470,8 @@ class App:
                 else:
                     ginfo = None
 
-                grad = ("  mode: PLA/PLA+ (standard, travel optimisation only)\n" if std
-                        else "  mode: LW-PLA (foaming ramp)\n")
+                grad = ("  mode: standard (travel optimisation only)\n" if std
+                        else "  mode: gradient mode\n")
                 if ginfo is not None:
                     if "error" in ginfo:
                         grad = f"  gradient: skipped ({ginfo['error']})\n"
@@ -490,15 +482,6 @@ class App:
                         if flow_enable:
                             grad += (f"  flow: M221 {f_start}% -> {f_end}% "
                                      f"({ginfo['flow_written']} M221 lines)\n")
-                        em = ginfo.get("em")
-                        if flow_enable:
-                            if em is None:
-                                grad += ("  note: extrusion multiplier not found in "
-                                         "G-code; M221 multiplies it (set EM=1.0 for "
-                                         "predictable flow)\n")
-                            elif abs(em - 1.0) > 1e-3:
-                                grad += (f"  WARNING: Extrusion Multiplier = {em:g}; "
-                                         f"effective flow = {em:g} x (M221/100)\n")
                 if before and after:
                     saved = before["travel_dist"] - after["travel_dist"]
                     savedp = (saved / before["travel_dist"] * 100.0) if before["travel_dist"] > 0 else 0.0
@@ -622,8 +605,18 @@ class App:
                     continue
             out.append(ln)
 
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.writelines(out)
+        import tempfile, os
+        fd, tmp_path = tempfile.mkstemp(dir=str(Path(path).parent), prefix=".gc_")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.writelines(out)
+            os.replace(tmp_path, path)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
         return {"total": total, "flow_written": flow_written,
                 "temp_written": temp_written, "em": em}

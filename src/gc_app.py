@@ -503,12 +503,11 @@ class App(BaseApp):
 
     def _apply_gradients(self, path, temp_enable, t_start, t_end,
                          flow_enable, f_start, f_end):
-        """Apply LW temperature and/or M221 flow gradients in-place to *path*.
+        """Apply temperature and/or flow gradients in-place to *path*.
 
         Temperature rewrites the absolute ``M104``/``M109`` targets, so it
         overrides the slicer's per-layer temperature.  Flow is emitted as
-        ``M221``, which the firmware *multiplies* with the extrusion multiplier
-        already baked into the E values, so it does not override it.
+        ``M221``, which the firmware applies over the layer.
         """
         with open(path, encoding="utf-8", errors="ignore") as fh:
             lines = fh.readlines()

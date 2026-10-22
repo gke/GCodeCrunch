@@ -18,7 +18,7 @@ by David Benner
 
 | Path | Contents |
 |---|---|
-| `main.py` | Root entry point — adds `src/` to the path and launches the GUI. |
+| `src/gc_app.py` | Primary GUI (gradient-capable); `src/gc_gui.py` is the earlier wrapper. |
 | `src/` | Application code: `main.py` (GUI), `gc_engine.py` (parser/optimiser library + CLI), `gc_gui.py` (earlier GUI wrapper). |
 | `scripts/` | Helpers and harnesses: `bench_gcode.py` (benchmark), `refresh_report_times.py` (re-measure and rewrite the report's time tables), diagnostics, geometry checks, legacy `GCODECrunch_v1/v2/NN` variants. |
 | `installer_kits/` | Packaging: `build.sh`, `build.bat`, Inno Setup `installer.iss`. |
@@ -49,4 +49,4 @@ See [`wiki/GCODECrunch_Report.md`](wiki/GCODECrunch_Report.md) for results.
 
 See [`wiki/BUILD.md`](wiki/BUILD.md) and [`installer_kits/README.md`](installer_kits/README.md).
 
-**Note:** GCODECrunch is printer-agnostic and works with any Marlin-compatible G-code. PLA is the default material profile in the GUI, but LW-PLA can be used by enabling the temperature and flow gradients. The default settings (0.2 mm layer height, 1 perimeter, 0% infill) are optimized for thin-wall wings.
+**Note:** GCODECrunch is printer-agnostic and works with any Marlin-compatible G-code. The default settings (0.2 mm layer height, 1 perimeter, 0% infill) are optimized for thin-wall wings. The temperature/flow gradient profile is material-agnostic (enabled when the standard-filament checkbox is unticked).

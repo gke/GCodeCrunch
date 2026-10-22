@@ -16,8 +16,8 @@ This iteration focused on tuning GCODECrunch for eSun LW-PLA on a single-perimet
 
 Created a one-page reference with the exact path format requested:
 
-- **File:** `wiki/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.md`
-- **PDF:** `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf`
+- **File:** `wiki/SinglePerimeter_Profile.md`
+- **PDF:** `GCodeCrunchTests/SinglePerimeter_Profile.pdf`
 
 Critical settings (PLA+ / LW-PLA):
 
@@ -65,21 +65,21 @@ The corrected G-code file (`GCODE/OPT/Lark Wing - OPT LW 215-240C 100-50pct holl
 
 ## Files Created
 
-- `wiki/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.md` - Editable source with exact settings
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - One-page PDF for quick reference
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - PDF version of the settings
+- `wiki/SinglePerimeter_Profile.md` - Editable source with exact settings
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - One-page PDF for quick reference
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - PDF version of the settings
 - `wiki/Work_Summary_v4.2.md` - Comprehensive summary of changes and next steps
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - PDF version of settings
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - PDF version of settings
 
 ## Files Created
 
-- `wiki/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.md` - Editable Markdown report
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - One-page PDF report
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - Duplicate PDF for easy access
+- `wiki/SinglePerimeter_Profile.md` - Editable Markdown report
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - One-page PDF report
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - Duplicate PDF for easy access
 - `wiki/Work_Summary_v4.2.md` - Comprehensive project summary
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - Final PDF report
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - Final PDF report
 - `wiki/Work_Summary_v4.2.md` - Project summary and validation plan
-- `GCodeCrunchTests/PrusaSlicer_SV06Plus_SinglePerimeter_Settings.pdf` - Final PDF report
+- `GCodeCrunchTests/SinglePerimeter_Profile.pdf` - Final PDF report
 
 ## Validation
 
